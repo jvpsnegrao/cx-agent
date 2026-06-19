@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "cx-tools": {
+      "command": "bun",
+      "args": ["run", "/Users/jvpsnegrao/dev/khal/packages/cx-tools/src/server.ts"],
+      "env": {
+        "KHAL_DATABASE_URL": "${KHAL_DATABASE_URL}",
+        "LINEAR_API_KEY": "${LINEAR_API_KEY}",
+        "LINEAR_TEAM_ID": "${LINEAR_TEAM_ID}",
+        "SLACK_WEBHOOK_URL": "${SLACK_WEBHOOK_URL}"
+      }
+    }
+  }
+}

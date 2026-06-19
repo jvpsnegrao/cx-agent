@@ -1,0 +1,28 @@
+{
+  "name": "khal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "typecheck": "bun --filter '*' typecheck",
+    "lint": "bunx biome check .",
+    "lint:fix": "bunx biome check --write .",
+    "test": "bun test",
+    "db:generate": "cd packages/db && bunx drizzle-kit generate",
+    "db:migrate": "bun packages/db/src/migrate.ts",
+    "db:seed": "bun packages/db/src/seed.ts",
+    "mcp:dev": "bun --watch packages/cx-tools/src/server.ts",
+    "cron:reminder": "bun packages/cx-cron/src/reminder.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "latest",
+    "drizzle-kit": "^0.31.5",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "bun@1.1.42",
+  "engines": {
+    "bun": ">=1.1"
+  }
+}

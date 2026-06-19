@@ -1,0 +1,10 @@
+{
+  "name": "khal",
+  "agents": {
+    "defaults": {}
+  },
+  "tmux": {
+    "socket": "genie"
+  },
+  "sdk": {}
+}

@@ -1,0 +1,20 @@
+node_modules/
+.env
+.env.local
+*.log
+.DS_Store
+
+# Vendor (Genie/Omni clones for reference; install scripts populate user's machine)
+vendor/
+
+# Genie state
+.genie/state/
+.genie/mailbox/
+.genie/chat/
+
+# Agent runtime (Claude memory + brain)
+agent-nova/brain/memory/
+agent-nova/.claude/
+agent-nova/SOUL.md
+agent-nova/HEARTBEAT.md
+agent-nova/repos
