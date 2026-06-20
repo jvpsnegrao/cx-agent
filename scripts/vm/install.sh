@@ -80,12 +80,16 @@ if ! as_khal_login 'command -v node' >/dev/null 2>&1; then
   ok "node LTS instalado via nvm"
 else ok "node já instalado"; fi
 
-step "5/12 — cosign (necessário pra autopg signature verification)"
+step "5/12 — cosign + pm2 (pré-reqs do autopg/omni)"
 if ! command -v cosign >/dev/null; then
   curl -fsSL https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64 -o /usr/local/bin/cosign
   chmod +x /usr/local/bin/cosign
   ok "cosign instalado"
 else ok "cosign já instalado"; fi
+
+# pm2 global pro khal (autopg/omni precisam invocar)
+as_khal_login 'export PATH="$HOME/.bun/bin:$PATH" && command -v pm2 >/dev/null || $HOME/.bun/bin/bun install -g pm2 >/dev/null'
+ok "pm2 disponível"
 
 step "5b/12 — Omni + Genie + autopg"
 as_khal_login '
@@ -173,11 +177,9 @@ as_khal_login "
 "
 ok "Genie workspace + Nova registrado"
 
-step "10/12 — PM2 + ecosystem"
-as_khal_login 'export PATH="$HOME/.bun/bin:$PATH" && command -v pm2 >/dev/null || $HOME/.bun/bin/bun install -g pm2 >/dev/null'
+step "10/12 — PM2 ecosystem (cx-demo + genie-bridge)"
 mkdir -p /var/log/khal
 chown "$KHAL_USER:$KHAL_USER" /var/log/khal
-ok "pm2 disponível"
 
 as_khal_login "
   export PATH=\"\$HOME/.bun/bin:\$HOME/.local/bin:\$PATH\"
