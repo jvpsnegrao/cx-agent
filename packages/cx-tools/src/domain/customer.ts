@@ -9,7 +9,7 @@ export type CustomerSummary = {
   monthlyValue: number;
   dataAllowanceGb: number;
   dataUsedGb: number;
-  status: 'active' | 'suspended' | 'cancelled';
+  status: 'active' | 'suspended' | 'cancelled' | 'prospect';
   nextBill: {
     referenceMonth: string;
     amountCents: number;
@@ -45,6 +45,9 @@ export async function findCustomerByPhone(db: DbClient, phone: string) {
 export async function buildCustomerSummary(db: DbClient, phone: string): Promise<CustomerSummary | null> {
   const customer = await findCustomerByPhone(db, phone);
   if (!customer) return null;
+  // prospect = customer placeholder criado pelo cx-demo p/ exibir conversa no painel.
+  // Pra Nova é como se não existisse — ela vai conduzir onboarding via criar_cliente.
+  if (customer.status === 'prospect') return null;
 
   const billRows = await db
     .select()

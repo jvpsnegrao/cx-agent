@@ -73,13 +73,14 @@ export async function createCustomerWithInstallTicket(
   const [plan] = await db.select().from(plans).where(eq(plans.id, input.planoId)).limit(1);
   if (!plan) throw new Error(`Plano ${input.planoId} não encontrado`);
 
-  // Phone duplicate guard: cliente já existe = não criar de novo
+  // Cliente existente: aceita 'prospect' (placeholder de conversa) → vai virar 'active'.
+  // Qualquer outro status (active/suspended/cancelled) já é cliente real → bloqueia.
   const existing = await db
     .select()
     .from(customers)
     .where(eq(customers.phone, input.phone))
     .limit(1);
-  if (existing[0]) {
+  if (existing[0] && existing[0].status !== 'prospect') {
     throw new Error(`DUPLICATE_PHONE: já existe cliente cadastrado com ${input.phone}`);
   }
 
@@ -91,24 +92,33 @@ export async function createCustomerWithInstallTicket(
 
   const addressComposed = `${cepData.logradouro}, ${input.numero}${input.complemento ? `, ${input.complemento}` : ''} — ${cepData.bairro}, ${cepData.localidade}/${cepData.uf} · CEP ${cepData.cep}`;
 
-  const [customer] = await db
-    .insert(customers)
-    .values({
-      phone: input.phone,
-      name: input.nome,
-      plan: plan.name,
-      planId: plan.id,
-      monthlyValue: plan.monthlyValueCents,
-      dataAllowanceGb: plan.dataAllowanceGb,
-      dataUsedGb: 0,
-      address: addressComposed,
-      cep: input.cep,
-      numero: input.numero,
-      complemento: input.complemento ?? null,
-      status: 'active',
-    })
-    .returning();
-  if (!customer) throw new Error('falha ao inserir customer');
+  const values = {
+    phone: input.phone,
+    name: input.nome,
+    plan: plan.name,
+    planId: plan.id,
+    monthlyValue: plan.monthlyValueCents,
+    dataAllowanceGb: plan.dataAllowanceGb,
+    dataUsedGb: 0,
+    address: addressComposed,
+    cep: input.cep,
+    numero: input.numero,
+    complemento: input.complemento ?? null,
+    status: 'active' as const,
+  };
+
+  let customer;
+  if (existing[0]) {
+    // UPDATE prospect → active
+    [customer] = await db
+      .update(customers)
+      .set(values)
+      .where(eq(customers.id, existing[0].id))
+      .returning();
+  } else {
+    [customer] = await db.insert(customers).values(values).returning();
+  }
+  if (!customer) throw new Error('falha ao inserir/atualizar customer');
 
   await db.insert(conversations).values({ customerId: customer.id });
 

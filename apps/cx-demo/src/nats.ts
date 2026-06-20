@@ -142,13 +142,24 @@ async function persistAndEmit(
   let customer = (await db.select().from(customers).where(eq(customers.phone, phone)).limit(1))[0];
 
   if (!customer) {
-    // NÃO auto-cria mais customer placeholder pra incoming msg.
-    // Onboarding via Nova decide cadastrar — auto-create polui khal.customers
-    // e confunde a Nova (vê "cliente existente sem plano" e pula onboarding).
-    // Conversa ainda pode aparecer no painel se o phone bater com customer real;
-    // se não, a msg só vive em public.messages do Omni até a Nova guiar o cadastro.
-    console.log(`[nats] phone ${phone} não cadastrado — Nova vai guiar onboarding`);
-    return;
+    // Cria customer placeholder (status='prospect') pra mostrar conversa no painel
+    // mesmo antes do onboarding. Nova ainda guia cadastro: consultar_conta + criar_cliente
+    // tratam 'prospect' como "não cadastrado" e a tool criar_cliente faz UPDATE em vez de INSERT.
+    [customer] = await db
+      .insert(customers)
+      .values({
+        phone,
+        name: 'Lead WhatsApp',
+        plan: '-',
+        monthlyValue: 0,
+        dataAllowanceGb: 0,
+        dataUsedGb: 0,
+        address: '-',
+        status: 'prospect',
+      })
+      .returning();
+    if (!customer) return;
+    console.log(`[nats] criou prospect ${phone} — Nova vai guiar onboarding`);
   }
 
   let [convo] = await db

@@ -25,7 +25,7 @@ export const customers = khal.table('customers', {
   cep: text('cep'),
   numero: text('numero'),
   complemento: text('complemento'),
-  status: text('status', { enum: ['active', 'suspended', 'cancelled'] }).notNull().default('active'),
+  status: text('status', { enum: ['active', 'suspended', 'cancelled', 'prospect'] }).notNull().default('active'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
