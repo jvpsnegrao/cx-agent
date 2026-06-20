@@ -193,6 +193,59 @@ Acesse `http://localhost:3000/login` (senha: `onyx-demo`).
 
 ---
 
+## Deploy em VM (Hetzner CX22 + nip.io)
+
+Pra deixar tudo público pra avaliação, monta numa VM Ubuntu 24.04 (~€5/mês).
+
+**Pré-requisitos:**
+
+1. VM Hetzner CX22 ou equivalente (2 vCPU, 4GB RAM, Ubuntu 24.04 LTS)
+2. `ANTHROPIC_API_KEY` da [console.anthropic.com](https://console.anthropic.com/settings/keys) — recomendo gerar com cap mensal (~$10–20 cobrem demo tranquilo)
+3. Domínio? Não precisa — script usa `<ip-hifenizado>.nip.io` com HTTPS Let's Encrypt automático via Caddy
+
+**Provisionamento (1 comando na VM):**
+
+```bash
+# Como root na VM:
+echo "sk-ant-..." > /root/.anthropic-key
+curl -fsSL https://raw.githubusercontent.com/jvpsnegrao/cx-agent/main/scripts/vm/install.sh | bash
+```
+
+O script cuida de tudo:
+
+1. APT base (postgres, tmux, jq, ufw, build-essential)
+2. Usuário `khal` dedicado
+3. Postgres local + DB `omni` em UTC
+4. Bun, Node (LTS via nvm), Omni, Genie, autopg
+5. Clone repo + `bun install`
+6. `.env` com token gerado, `ANTHROPIC_API_KEY` injetada
+7. Migrate + seed (3 planos + 5 clientes)
+8. `omni start` + cria instance `whatsapp-baileys`
+9. `genie agent register nova`
+10. PM2 com `ecosystem.config.cjs` (cx-demo + genie-bridge)
+11. Caddy + HTTPS automático em `<ip>.nip.io`
+12. Firewall ufw (22/80/443)
+
+**Pós-deploy (manual, ~5min):**
+
+```bash
+# SSH na VM, scaneia o QR do WhatsApp no app do celular:
+sudo -u khal bash -lc 'export PATH=$HOME/.bun/bin:$PATH && omni instances qr <INSTANCE_ID>'
+
+# Confirma PM2 saudável:
+sudo -u khal pm2 status
+
+# Logs em caso de problema:
+sudo -u khal pm2 logs cx-demo --lines 50
+sudo -u khal pm2 logs genie-bridge --lines 50
+```
+
+**URL pública:** `https://<ip-hifenizado>.nip.io` · senha `onyx-demo`
+
+> ⚠️ Re-scan do WhatsApp na VM desconecta a sessão Baileys local. Faça o scan na VM **depois** que o setup terminar.
+
+---
+
 ## Gotchas conhecidos (honestos)
 
 ### Setup

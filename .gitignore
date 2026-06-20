@@ -4,6 +4,12 @@ node_modules/
 *.log
 .DS_Store
 
+# Claude Code local config (sessão do dev — não commitar)
+.claude/
+
+# Lixo de shell ocasional
+--count=*
+
 # Vendor (Genie/Omni clones for reference; install scripts populate user's machine)
 vendor/
 
