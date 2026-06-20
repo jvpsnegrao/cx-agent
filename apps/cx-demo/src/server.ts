@@ -101,6 +101,10 @@ async function markOverdueBills() {
 markOverdueBills();
 setInterval(markOverdueBills, 15 * 60_000);
 
+Bun.serve({
+  port: env.port,
+  fetch: app.fetch,
+});
 console.log(`[cx-demo] listening on :${env.port}`);
 
 export default {
