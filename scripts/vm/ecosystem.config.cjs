@@ -67,10 +67,9 @@ module.exports = {
     },
     {
       name: 'genie-bridge',
-      cwd: `${REPO}/vendor/genie`,
-      // Usa o binário local do vendor (tem fix paste-buffer)
-      script: `${REPO}/vendor/genie/dist/genie.js`,
-      interpreter: BUN,
+      cwd: `${REPO}/agent-nova`,
+      // Genie global (binary compilado em ~/.genie/bin/genie)
+      script: `${HOME}/.genie/bin/genie`,
       args: 'serve start --headless --no-tui --no-interactive',
       env: sharedEnv,
       max_memory_restart: '1G',
