@@ -120,7 +120,15 @@ export async function createCustomerWithInstallTicket(
   }
   if (!customer) throw new Error('falha ao inserir/atualizar customer');
 
-  await db.insert(conversations).values({ customerId: customer.id });
+  // Só cria conversation se ainda não tem (prospect já abriu uma quando msg chegou).
+  const existingConvo = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.customerId, customer.id))
+    .limit(1);
+  if (!existingConvo[0]) {
+    await db.insert(conversations).values({ customerId: customer.id });
+  }
 
   // Primeira cobrança: vencimento em +10 dias do cadastro (configurável).
   const dueDate = new Date(Date.now() + FIRST_BILL_DAYS * 24 * 60 * 60 * 1000);
