@@ -23,7 +23,8 @@ KHAL_USER="${KHAL_USER:-khal}"
 
 # Helper pra rodar como khal user (sempre presente após passo 2)
 as_khal() { runuser -u "$KHAL_USER" -- "$@"; }
-as_khal_login() { runuser -u "$KHAL_USER" -- bash -lc "$1"; }
+# Usa runuser -l (login shell c/ PAM session) — PM2/omni precisam disso pra spawnar daemons.
+as_khal_login() { runuser -l "$KHAL_USER" -c "$1"; }
 as_postgres() { runuser -u postgres -- "$@"; }
 
 step "1/12 — APT base"
@@ -75,10 +76,17 @@ if ! as_khal_login 'command -v node' >/dev/null 2>&1; then
     nvm install --lts >/dev/null
     nvm use --lts >/dev/null
   '
-  # Faz node disponível em login shells normais
-  as_khal_login 'echo "[ -s \"\$HOME/.nvm/nvm.sh\" ] && . \"\$HOME/.nvm/nvm.sh\"" >> ~/.bashrc'
   ok "node LTS instalado via nvm"
 else ok "node já instalado"; fi
+
+# Symlinks globais pro node/npm — pm2 (e qualquer #!/usr/bin/env node) precisam
+NODE_BIN=$(ls -d /home/$KHAL_USER/.nvm/versions/node/v*/bin 2>/dev/null | tail -1)
+if [ -n "$NODE_BIN" ]; then
+  ln -sf "$NODE_BIN/node" /usr/local/bin/node
+  ln -sf "$NODE_BIN/npm"  /usr/local/bin/npm
+  ln -sf "$NODE_BIN/npx"  /usr/local/bin/npx
+  ok "node/npm/npx symlinked em /usr/local/bin"
+fi
 
 step "5/12 — cosign + pm2 (pré-reqs do autopg/omni)"
 if ! command -v cosign >/dev/null; then
