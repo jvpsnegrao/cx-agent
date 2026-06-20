@@ -1,90 +1,133 @@
 #!/usr/bin/env bash
-# bootstrap.sh — Setup reproduzível em macOS/Linux limpo.
-# Roda os installs externos, prepara DB e registra Nova.
-# Não cuida do QR (interativo) nem do `omni connect` (depende de instance ID).
-set -euo pipefail
+# Bootstrap end-to-end do projeto Khal — uma execução pra deixar tudo
+# pronto pro `bun run demo` + scan QR do WhatsApp.
+# Idempotente: pode rodar várias vezes sem quebrar nada.
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"
+set -e
 
-log()  { printf '\033[1;36m==>\033[0m %s\n' "$*" >&2; }
-warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
+GREEN='\033[0;32m'; YELLOW='\033[0;33m'; RED='\033[0;31m'; BLUE='\033[0;36m'; NC='\033[0m'
+ok()    { echo -e "${GREEN}✓${NC} $1"; }
+warn()  { echo -e "${YELLOW}⚠${NC} $1"; }
+err()   { echo -e "${RED}✗${NC} $1"; }
+step()  { echo -e "\n${BLUE}▸${NC} $1"; }
+fatal() { err "$1"; exit 1; }
 
-# 1. Bun
-if ! command -v bun >/dev/null 2>&1; then
-  log "instalando bun"
-  curl -fsSL https://bun.sh/install | bash
-  export PATH="$HOME/.bun/bin:$PATH"
-fi
-log "bun $(bun --version)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_DIR"
 
-# 2. Omni server (sobe Postgres+NATS+API via PM2 — non-interactive)
-if ! command -v omni >/dev/null 2>&1; then
-  log "instalando omni server"
-  bash "$REPO_ROOT/vendor/omni/install.sh" --server
-fi
-log "omni $(omni --version)"
+step "1/9 — Pré-requisitos"
+command -v bun  >/dev/null || fatal "bun: curl -fsSL https://bun.sh/install | bash"
+command -v node >/dev/null || fatal "node: PM2 do Omni/Genie precisa node no PATH (qualquer versão recente)"
+command -v tmux >/dev/null || fatal "tmux: brew install tmux (macOS) ou apt install tmux (Linux)"
+command -v jq   >/dev/null || warn  "jq opcional (recomendado pra parsing JSON)"
+ok "bun  $(bun --version)"
+ok "node $(node --version)"
+ok "tmux $(tmux -V | awk '{print $2}')"
 
-# 3. autopg (Postgres dedicado pro Genie)
-if ! command -v autopg >/dev/null 2>&1; then
-  log "instalando autopg"
+step "2/9 — Omni / Genie / autopg (idempotente)"
+if ! command -v omni >/dev/null; then
+  echo "  Instalando Omni..."
+  curl -fsSL https://raw.githubusercontent.com/automagik-dev/omni/main/install.sh | bash -s -- --server
+  ok "Omni instalado"
+else ok "Omni já instalado"; fi
+if ! command -v autopg >/dev/null; then
+  echo "  Instalando autopg..."
   curl -fsSL https://raw.githubusercontent.com/automagik-dev/autopg/main/install.sh | bash
-fi
-if ! autopg status >/dev/null 2>&1; then
-  log "registrando autopg-server em 5434 (5432 pode conflitar com Docker Desktop)"
-  autopg install --port 5434
-fi
+  ok "autopg instalado"
+else ok "autopg já instalado"; fi
+if ! command -v genie >/dev/null; then
+  echo "  Instalando Genie..."
+  curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | bash
+  ok "Genie instalado"
+else ok "Genie já instalado"; fi
 
-# 4. Genie
-if ! command -v genie >/dev/null 2>&1; then
-  log "instalando genie"
-  bash "$REPO_ROOT/vendor/genie/install.sh"
-fi
-log "genie $(genie --version)"
-
-# 5. Genie setup (--quick = sem prompts)
-genie setup --quick --no-interactive --no-tui >/dev/null 2>&1 || warn "genie setup --quick falhou; provavelmente já feito"
-
-# 6. Workspace + agent Nova
-cd "$REPO_ROOT"
-if [ ! -f .genie/workspace.json ]; then
-  log "criando workspace .genie/ (genie init pode levar ~10s, busy-loop conhecido)"
-  ( genie init --no-interactive --no-tui & ) >/dev/null 2>&1
-  sleep 12
-  pkill -f "genie init" >/dev/null 2>&1 || true
+step "3/9 — Subindo Omni + autopg"
+omni start >/dev/null 2>&1 || true
+sleep 2
+if omni doctor --fix 2>&1 | tail -10 | grep -qE "(OK|healthy)"; then
+  ok "Omni saudável"
+else
+  warn "omni doctor com avisos — verifique manualmente"
 fi
 
-if [ ! -d agent-nova ] || [ ! -f agent-nova/AGENTS.md ]; then
-  warn "agent-nova/AGENTS.md não existe — abortando"
-  exit 1
+step "4/9 — Fix timezone UTC"
+TZ=$(PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d omni -tA -c "SHOW timezone" 2>/dev/null || echo "?")
+if [ "$TZ" = "UTC" ]; then ok "timezone já em UTC"
+else
+  PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d omni \
+    -c "ALTER DATABASE omni SET timezone TO 'UTC';" >/dev/null
+  ok "timezone setado pra UTC"
 fi
 
-if ! genie agent directory 2>&1 | grep -q "^nova "; then
-  log "registrando agent Nova"
-  genie agent register nova --dir ./agent-nova --no-interactive --no-tui --skip-omni
+step "5/9 — Deps + .env"
+bun install >/dev/null 2>&1
+ok "bun install"
+if [ ! -f ".env" ]; then
+  cp .env.example .env
+  TOKEN=$(openssl rand -hex 32 2>/dev/null || head -c 32 /dev/urandom | xxd -p)
+  /usr/bin/sed -i.bak "s/dev-token-change-me-in-prod/$TOKEN/" .env && rm -f .env.bak
+  ok ".env criado (CX_DEMO_TOKEN gerado)"
+else ok ".env já existe"; fi
+
+step "6/9 — Migrate + seed"
+cd packages/db
+KHAL_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/omni" bun src/migrate.ts >/dev/null 2>&1
+ok "schema khal.* aplicado"
+KHAL_DATABASE_URL="postgresql://postgres:postgres@localhost:5432/omni" bun src/seed.ts >/dev/null 2>&1
+ok "5 clientes + 3 planos seedados"
+cd "$REPO_DIR"
+
+step "7/9 — Workspace Genie + agent Nova"
+if [ ! -f ".genie/workspace.json" ]; then
+  ( timeout 8 genie init --no-interactive --no-tui >/dev/null 2>&1 || true )
+  ok ".genie/workspace.json criado"
+else ok "workspace.json já existe"; fi
+genie agent register nova --dir ./agent-nova --no-interactive --no-tui --skip-omni >/dev/null 2>&1 || true
+ok "agent Nova registrado"
+
+step "8/9 — WhatsApp instance"
+EXISTING=$(omni instances list --json 2>/dev/null | jq -r '.[] | select(.channel=="whatsapp-baileys") | .id' 2>/dev/null | head -1)
+if [ -z "$EXISTING" ]; then
+  omni instances create --name nova-onyx --channel whatsapp-baileys >/dev/null 2>&1 || true
+  EXISTING=$(omni instances list --json 2>/dev/null | jq -r '.[] | select(.channel=="whatsapp-baileys") | .id' 2>/dev/null | head -1)
+fi
+INSTANCE_ID="$EXISTING"
+ok "instance: $INSTANCE_ID"
+omni connect "$INSTANCE_ID" nova >/dev/null 2>&1 || true
+PROV=$(omni providers list --json 2>/dev/null | jq -r '.[] | select(.schema=="nats-genie") | .id' 2>/dev/null | head -1)
+if [ -n "$PROV" ]; then
+  omni providers update "$PROV" --schema-config \
+    "{\"natsUrl\":\"localhost:4222\",\"agentDir\":\"$(pwd)/agent-nova\",\"agentName\":\"nova\",\"mode\":\"turn-based\"}" \
+    >/dev/null 2>&1 || true
+  ok "provider em turn-based"
 fi
 
-# 7. Deps + DB
-log "instalando workspace deps"
-bun install --quiet
+step "9/9 — PRONTO ✓"
+OMNI_KEY=$(jq -r '.apiKey // empty' ~/.omni/config.json 2>/dev/null || echo '<rode: cat ~/.omni/config.json>')
 
-log "rodando migrate + seed"
-export KHAL_DATABASE_URL="${KHAL_DATABASE_URL:-postgresql://postgres:postgres@localhost:8432/omni}"
-bun packages/db/src/migrate.ts
-bun packages/db/src/seed.ts
-
-cat <<EOF
-
-═══════════════════════════════════════════════════════════
-Bootstrap completo. Próximos passos manuais:
-  1. Cria instância WhatsApp:
-       omni instances create --name nova-onyx --channel whatsapp-baileys
-  2. Pega o INSTANCE_ID e roda:
-       omni instances connect <INSTANCE_ID>
-       omni instances qr <INSTANCE_ID>
-     (scaneia no WhatsApp do número da Nova)
-  3. Liga Omni ↔ Nova:
-       omni connect <INSTANCE_ID> nova
-  4. Manda "oi" do teu WhatsApp pro número.
-═══════════════════════════════════════════════════════════
-EOF
+echo
+echo "════════════════════════════════════════════════════════════════"
+echo " 4 últimos passos manuais"
+echo "════════════════════════════════════════════════════════════════"
+echo
+echo " 1. EDITE .env e preencha:"
+echo "      OMNI_API_KEY=$OMNI_KEY"
+echo "      OMNI_INSTANCE_ID=$INSTANCE_ID"
+echo
+echo " 2. Conecte WhatsApp:"
+echo "      omni instances connect $INSTANCE_ID"
+echo "      omni instances qr $INSTANCE_ID    # scaneie no Zap"
+echo
+echo " 3. Suba bridge + painel:"
+echo "      OMNI_API_KEY=\"$OMNI_KEY\" \\"
+echo "      OMNI_API_URL=http://localhost:8882 \\"
+echo "      CX_DEMO_URL=http://localhost:3000 \\"
+echo "      CX_DEMO_TOKEN=\$(grep CX_DEMO_TOKEN .env | cut -d= -f2) \\"
+echo "      KHAL_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/omni \\"
+echo "        pm2 start genie --name Genie -- serve start --headless --no-tui --no-interactive"
+echo "      bun run demo &"
+echo
+echo " 4. Abra o painel: open http://localhost:3000/login   (senha: onyx-demo)"
+echo
+echo " ✓ Mande 'oi' do seu WhatsApp pro número da Nova"
+echo

@@ -8,6 +8,20 @@
       "when": 1781837574721,
       "tag": "0000_salty_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781949237498,
+      "tag": "0001_majestic_rogue",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781961600000,
+      "tag": "0002_rename_linear_id",
+      "breakpoints": true
     }
   ]
 }

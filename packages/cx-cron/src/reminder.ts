@@ -66,7 +66,7 @@ for (const row of dueBills) {
     `3 - Falar com alguém`,
   ].join('\n');
 
-  const res = await fetch(`${OMNI_URL}/api/v2/messages`, {
+  const res = await fetch(`${OMNI_URL}/api/v2/messages/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': OMNI_KEY },
     body: JSON.stringify({ instanceId: INSTANCE_ID, to: row.customerPhone, text }),

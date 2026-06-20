@@ -1,0 +1,4 @@
+# Bun config (lido da raiz do projeto).
+# JSX setting necessário pelas pages do apps/cx-demo (Hono JSX SSR).
+jsx = "react-jsx"
+jsxImportSource = "hono/jsx"

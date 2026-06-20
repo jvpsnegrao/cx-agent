@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "typecheck": "bun --filter '*' typecheck",
     "lint": "bunx biome check .",
@@ -13,7 +13,10 @@
     "db:migrate": "bun packages/db/src/migrate.ts",
     "db:seed": "bun packages/db/src/seed.ts",
     "mcp:dev": "bun --watch packages/cx-tools/src/server.ts",
-    "cron:reminder": "bun packages/cx-cron/src/reminder.ts"
+    "cron:reminder": "bun packages/cx-cron/src/reminder.ts",
+    "demo": "bun --watch apps/cx-demo/src/server.ts",
+    "demo:nowatch": "bun apps/cx-demo/src/server.ts",
+    "setup": "./scripts/bootstrap.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",

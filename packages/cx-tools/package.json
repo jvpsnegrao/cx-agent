@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@khal/db": "workspace:*",
-    "@linear/sdk": "^39.0.0",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "drizzle-orm": "^0.36.4",
     "postgres": "^3.4.5",

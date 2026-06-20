@@ -18,9 +18,28 @@ export type CustomerSummary = {
   } | null;
 };
 
+/**
+ * Match flexível BR: clientes podem estar cadastrados com OU sem o "9" do celular
+ * (formato antigo `+5511XXXXYYYY` vs novo `+55119XXXXYYYY`). Resolve a discrepância
+ * canonical_id do Omni vs cadastro humano.
+ */
+function brVariant(phone: string): string | null {
+  const digits = phone.replace(/[^0-9]/g, '');
+  if (!digits.startsWith('55') || digits.length < 12 || digits.length > 13) return null;
+  if (digits.length === 13) return `+${digits.slice(0, 4)}${digits.slice(5)}`; // tira 9 (pos 4)
+  return `+${digits.slice(0, 4)}9${digits.slice(4)}`; // 12 → injeta 9
+}
+
 export async function findCustomerByPhone(db: DbClient, phone: string) {
+  if (!phone) return null;
   const rows = await db.select().from(customers).where(eq(customers.phone, phone)).limit(1);
-  return rows[0] ?? null;
+  if (rows[0]) return rows[0];
+  const variant = brVariant(phone);
+  if (variant && variant !== phone) {
+    const rows2 = await db.select().from(customers).where(eq(customers.phone, variant)).limit(1);
+    return rows2[0] ?? null;
+  }
+  return null;
 }
 
 export async function buildCustomerSummary(db: DbClient, phone: string): Promise<CustomerSummary | null> {

@@ -1,0 +1,63 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl bash tmux ca-certificates gnupg jq git nodejs npm unzip xz-utils \
+    procps psmisc less locales libpq5 sudo postgresql-client postgresql \
+  && locale-gen en_US.UTF-8 \
+  && rm -rf /var/lib/apt/lists/*
+
+# gh CLI (for autopg signature verification)
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+  && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
+  && apt-get update && apt-get install -y gh \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+
+# Bun
+RUN curl -fsSL https://bun.sh/install | bash
+ENV BUN_INSTALL=/root/.bun
+ENV PATH=$BUN_INSTALL/bin:/root/.local/bin:$PATH
+
+# Claude Code
+RUN npm install -g @anthropic-ai/claude-code
+
+# Genie + autopg via install script
+# (INSECURE=1 skips gh attestation verification in container)
+# Tail script: ignore exit 2 ("no workspace yet" — handled in entrypoint)
+RUN (INSECURE=1 bash -c 'curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh | INSECURE=1 bash' || true) && \
+    ls -la /root/.genie/bin/genie /root/.local/bin/genie 2>&1
+# autopg — download binary directly (skip signature verification, install.sh requires gh attestation)
+ARG TARGETARCH
+RUN AUTOPG_VER=3.0.7 \
+  && case "$TARGETARCH" in \
+       amd64) AUTOPG_ASSET="autopg-${AUTOPG_VER}-linux-x86_64.tar.gz" ;; \
+       arm64) AUTOPG_ASSET="autopg-${AUTOPG_VER}-linux-arm64.tar.gz" ;; \
+     esac \
+  && curl -fsSL "https://github.com/automagik-dev/autopg/releases/download/v${AUTOPG_VER}/${AUTOPG_ASSET}" -o /tmp/autopg.tar.gz \
+  && mkdir -p /root/.local/bin /root/.local/share/autopg/v${AUTOPG_VER} \
+  && tar -xzf /tmp/autopg.tar.gz -C /root/.local/share/autopg/v${AUTOPG_VER} \
+  && ls /root/.local/share/autopg/v${AUTOPG_VER}/ \
+  && find /root/.local/share/autopg/v${AUTOPG_VER} -type f -executable -exec cp {} /root/.local/bin/ \; \
+  && ln -sf /root/.local/share/autopg/v${AUTOPG_VER}/autopg /root/.local/bin/autopg 2>&1 || true \
+  && ln -sf /root/.local/share/autopg/v${AUTOPG_VER}/pgserve /root/.local/bin/pgserve 2>&1 || true \
+  && ls -la /root/.local/bin/ | head -20
+
+# Omni CLI
+RUN bun add -g @automagik/omni
+
+WORKDIR /workspace
+
+# Copy project files at build time
+COPY agent-nova /workspace/agent-nova
+COPY packages /workspace/packages
+COPY package.json bun.lock tsconfig.json biome.json /workspace/
+COPY scripts/docker-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Install workspace deps
+RUN bun install --production --no-save || true
+
+CMD ["/entrypoint.sh"]

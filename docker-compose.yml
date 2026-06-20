@@ -1,0 +1,25 @@
+services:
+  bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.bridge
+    image: khal-bridge:local
+    container_name: khal-bridge
+    environment:
+      OMNI_API_URL: http://host.docker.internal:8882
+      OMNI_API_KEY: ${OMNI_API_KEY:-}
+      GENIE_NATS_URL: host.docker.internal:4222
+      GENIE_EXECUTOR: tmux
+      KHAL_DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:8432/omni
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      LINEAR_API_KEY: ${LINEAR_API_KEY:-}
+      LINEAR_TEAM_ID: ${LINEAR_TEAM_ID:-ONYX}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    volumes:
+      - ./agent-nova:/workspace/agent-nova
+      - ./packages:/workspace/packages
+      - ${HOME}/.claude:/root/.claude
+    tty: true
+    stdin_open: true

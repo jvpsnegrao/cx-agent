@@ -15,7 +15,7 @@ export type HandoffPayload = {
   ticketLinearId?: string;
 };
 
-export type SlackAdapter = {
+export type HandoffBackend = {
   postHandoff: (payload: HandoffPayload & { lastMessages: string[] }) => Promise<void>;
 };
 
@@ -52,7 +52,7 @@ export function renderSlackBlocks(p: HandoffPayload & { lastMessages: string[] }
   };
 }
 
-export async function escalateHumanHandoff(db: DbClient, slack: SlackAdapter, p: HandoffPayload) {
+export async function escalateHumanHandoff(db: DbClient, slack: HandoffBackend, p: HandoffPayload) {
   const lastMessages = await db
     .select({ role: messages.role, content: messages.content })
     .from(messages)

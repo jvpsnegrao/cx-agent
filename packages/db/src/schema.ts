@@ -3,15 +3,28 @@ import { boolean, integer, jsonb, pgSchema, text, timestamp, uuid } from 'drizzl
 
 export const khal = pgSchema('khal');
 
+export const plans = khal.table('plans', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull().unique(),
+  monthlyValueCents: integer('monthly_value_cents').notNull(),
+  dataAllowanceGb: integer('data_allowance_gb').notNull(),
+  active: boolean('active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const customers = khal.table('customers', {
   id: uuid('id').defaultRandom().primaryKey(),
   phone: text('phone').notNull().unique(),
   name: text('name').notNull(),
   plan: text('plan').notNull(),
+  planId: uuid('plan_id').references(() => plans.id, { onDelete: 'set null' }),
   monthlyValue: integer('monthly_value_cents').notNull(),
   dataAllowanceGb: integer('data_allowance_gb').notNull(),
   dataUsedGb: integer('data_used_gb').notNull().default(0),
   address: text('address').notNull(),
+  cep: text('cep'),
+  numero: text('numero'),
+  complemento: text('complemento'),
   status: text('status', { enum: ['active', 'suspended', 'cancelled'] }).notNull().default('active'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -34,7 +47,7 @@ export const tickets = khal.table('tickets', {
   customerId: uuid('customer_id')
     .notNull()
     .references(() => customers.id, { onDelete: 'cascade' }),
-  linearId: text('linear_id'),
+  externalId: text('external_id'),
   title: text('title').notNull(),
   category: text('category').notNull(),
   priority: text('priority', { enum: ['low', 'medium', 'high', 'urgent'] }).notNull(),

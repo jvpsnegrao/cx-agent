@@ -9,13 +9,13 @@ export type TicketProposal = {
   description: string;
 };
 
-export type LinearAdapter = {
+export type TicketBackend = {
   createIssue: (input: TicketProposal & { customerName: string }) => Promise<{ id: string; identifier: string }>;
 };
 
 export async function createTicket(
   db: DbClient,
-  linear: LinearAdapter,
+  linear: TicketBackend,
   proposal: TicketProposal & { customerName: string },
 ) {
   const issue = await linear.createIssue(proposal);
@@ -23,7 +23,7 @@ export async function createTicket(
     .insert(tickets)
     .values({
       customerId: proposal.customerId,
-      linearId: issue.identifier,
+      externalId: issue.identifier,
       title: proposal.title,
       category: proposal.category,
       priority: proposal.priority,
@@ -38,9 +38,9 @@ export async function createTicket(
   await db.insert(auditLog).values({
     customerId: proposal.customerId,
     action: 'abrir_ticket',
-    payload: { linearId: issue.identifier, title: proposal.title, priority: proposal.priority },
+    payload: { externalId: issue.identifier, title: proposal.title, priority: proposal.priority },
     result: 'ok',
   });
 
-  return { ticketId: row.id, linearId: issue.identifier };
+  return { ticketId: row.id, externalId: issue.identifier };
 }
