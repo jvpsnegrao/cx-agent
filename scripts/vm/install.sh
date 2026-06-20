@@ -80,16 +80,12 @@ if ! as_khal_login 'command -v node' >/dev/null 2>&1; then
   ok "node LTS instalado via nvm"
 else ok "node já instalado"; fi
 
-step "5/12 — gh CLI (necessário pra autopg signature verification)"
-if ! command -v gh >/dev/null; then
-  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null
-  chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-  ARCH=$(dpkg --print-architecture)
-  echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
-  apt-get update -qq
-  apt-get install -y -qq gh >/dev/null
-  ok "gh CLI instalado"
-else ok "gh CLI já instalado"; fi
+step "5/12 — cosign (necessário pra autopg signature verification)"
+if ! command -v cosign >/dev/null; then
+  curl -fsSL https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64 -o /usr/local/bin/cosign
+  chmod +x /usr/local/bin/cosign
+  ok "cosign instalado"
+else ok "cosign já instalado"; fi
 
 step "5b/12 — Omni + Genie + autopg"
 as_khal_login '
