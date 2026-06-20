@@ -23,7 +23,7 @@ KHAL_USER="${KHAL_USER:-khal}"
 
 # Helper pra rodar como khal user (sempre presente após passo 2)
 as_khal() { runuser -u "$KHAL_USER" -- "$@"; }
-as_khal_login() { runuser -l "$KHAL_USER" -- bash -lc "$1"; }
+as_khal_login() { runuser -u "$KHAL_USER" -- bash -lc "$1"; }
 as_postgres() { runuser -u postgres -- "$@"; }
 
 step "1/12 — APT base"
