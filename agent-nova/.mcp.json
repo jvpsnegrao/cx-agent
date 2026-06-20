@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "cx-tools": {
-      "command": "/Users/jvpsnegrao/.bun/bin/bun",
-      "args": ["run", "/Users/jvpsnegrao/dev/khal/packages/cx-tools/src/server.ts"],
+      "command": "bun",
+      "args": ["run", "../packages/cx-tools/src/server.ts"],
       "env": {
         "KHAL_DATABASE_URL": "postgresql://postgres:postgres@localhost:5432/omni",
         "CX_DEMO_URL": "http://localhost:3000",
