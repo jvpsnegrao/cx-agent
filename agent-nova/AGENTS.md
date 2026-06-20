@@ -4,7 +4,7 @@ model: sonnet
 color: cyan
 effort: medium
 thinking: enabled
-permissionMode: default
+permissionMode: bypassPermissions
 ---
 
 <mission>
