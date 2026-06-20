@@ -44,9 +44,8 @@ const sharedEnv = {
   CX_DEMO_URL: process.env.CX_DEMO_URL || 'http://localhost:3000',
   CX_DEMO_TOKEN: process.env.CX_DEMO_TOKEN,
   CX_DEMO_PASSWORD: process.env.CX_DEMO_PASSWORD || 'onyx-demo',
-  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-  ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
-  ANTHROPIC_DEFAULT_MODEL: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
+  // SEM ANTHROPIC_API_KEY — usa OAuth login do Claude Code (sub do user).
+  // API key cai em Tier 0 (10k tokens/min) e estoura 429 na primeira request.
   NATS_URL: process.env.NATS_URL || 'nats://localhost:4222',
   GENIE_NATS_URL: 'localhost:4222',
   GENIE_EXECUTOR: 'tmux',
