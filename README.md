@@ -1,16 +1,16 @@
-# Khal — Agente de CX no WhatsApp · Onyx Telecom
+# cx-agent — Agente de CX no WhatsApp
 
-> **Teste técnico KHAL / Namastex** — agente conversacional WhatsApp ("Nova" da operadora fictícia Onyx Telecom) construído sobre a stack obrigatória da casa (**Genie** + **Omni**) com painel web live demo.
+> Projetinho de estudo: agente conversacional no WhatsApp ("Nova" de uma operadora fictícia chamada Onyx Telecom) construído sobre **Genie** (orquestrador de Claude Code) + **Omni** (bridge Baileys), com painel web em tempo real.
 
-**📱 Fale com a Nova no WhatsApp:** `+55 34 95328-3194` &nbsp; · &nbsp; **🖥️ Painel:** _TBD (URL pública em breve)_ · senha `onyx-demo`
+**📱 WhatsApp da Nova:** `+55 34 95328-3194` &nbsp; · &nbsp; **🖥️ Painel:** _TBD (URL pública em breve)_ · senha `onyx-demo`
 
 ---
 
-## TL;DR pro avaliador
+## TL;DR
 
 A Nova atende clientes da Onyx Telecom no WhatsApp. Manda qualquer msg pra ela. Se você **não está cadastrado** ela conduz o cadastro completo (nome → plano → CEP+número validados via ViaCEP) e abre o ticket de instalação. Se você **já é cliente**, ela consulta sua conta, gera 2ª via como PDF anexo, abre chamados, escala pra humano.
 
-Tudo que acontece no WhatsApp aparece em **tempo real no painel** via SSE. Você (avaliador) pode atender humanamente uma conversa direto pelo painel.
+Tudo que acontece no WhatsApp aparece em **tempo real no painel** via SSE. Dá pra assumir uma conversa pelo painel e responder como humano.
 
 ### Cenários sugeridos pra testar (5 minutos)
 
@@ -65,7 +65,7 @@ Painel cx-demo (Hono + JSX + HTMX + SSE):
 - `packages/cx-cron/` — Worker proativo (lembrete de fatura T-3d)
 - `apps/cx-demo/` — Backend HTTP + painel live demo
 
-### Integrações que satisfazem "≥1 tool externa real" do briefing
+### Integrações externas reais
 
 | Categoria | Onde |
 |---|---|
@@ -133,7 +133,7 @@ Nova:    [chama criar_cliente — insere customer + abre ONYX-N + gera fatura +1
 - **002** — Confirmação 2-passos em write actions via lista numerada WhatsApp
 - **003** — Bun em vez de Node (alinhamento Omni/Genie)
 - **004** — Persistir tudo (msgs + sentiment) em vez de confiar só em `--resume` do Claude
-- **005** — Backend próprio `cx-demo` em vez de SaaS externos (UX coesa: avaliador vê 1 URL)
+- **005** — Backend próprio `cx-demo` em vez de SaaS externos (UX coesa: 1 URL pra ver tudo)
 - **006** — Painel em Hono + JSX SSR + HTMX (sem React, sem build step)
 - **007** — Realtime via SSE + NATS subscriber + Omni poll (incoming NATS, outgoing poll)
 - **008** — Jornada de cadastro de novo cliente via WhatsApp (3 planos + ViaCEP + ticket auto + cobrança +10d)

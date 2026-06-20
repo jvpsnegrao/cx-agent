@@ -4,7 +4,7 @@
 
 ## Contexto
 
-Versão inicial da Nova abria tickets no **Linear** (`abrir_ticket`) e escalava handoffs no **Slack** (`escalar_atendente`). Ambas integrações eram reais — atendiam ao requisito do teste técnico ("≥1 tool externa real") — mas tinham 3 problemas observados ao validar a demo:
+Versão inicial da Nova abria tickets no **Linear** (`abrir_ticket`) e escalava handoffs no **Slack** (`escalar_atendente`). Ambas integrações eram reais — cumpriam o critério de "tool externa real" — mas tinham 3 problemas observados ao validar a demo:
 
 1. **Setup do avaliador era pesado**: criar conta Linear, gerar API key, criar workspace, criar canal Slack, gerar webhook. Cada um desses tem fricção, e nada disso é o "produto" — é apenas plumbing.
 2. **Avaliador via o resultado em outro lugar**: o ticket abria no Linear, o handoff caía no Slack. Avaliador alternava entre 3 telas (WhatsApp, Linear, Slack) sem sensação de "produto coeso".

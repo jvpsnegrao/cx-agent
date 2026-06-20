@@ -27,7 +27,7 @@ KHAL_USER="${KHAL_USER:-khal}"
 
 step "1/12 — APT base"
 $SUDO apt-get update -qq
-$SUDO DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+$SUDO env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
   curl git tmux jq unzip ufw build-essential ca-certificates \
   postgresql postgresql-contrib \
   python3 python3-pip \
