@@ -80,12 +80,23 @@ if ! as_khal_login 'command -v node' >/dev/null 2>&1; then
   ok "node LTS instalado via nvm"
 else ok "node já instalado"; fi
 
-step "5/12 — Omni + Genie + autopg"
+step "5/12 — gh CLI (necessário pra autopg signature verification)"
+if ! command -v gh >/dev/null; then
+  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg 2>/dev/null
+  chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+  ARCH=$(dpkg --print-architecture)
+  echo "deb [arch=$ARCH signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
+  apt-get update -qq
+  apt-get install -y -qq gh >/dev/null
+  ok "gh CLI instalado"
+else ok "gh CLI já instalado"; fi
+
+step "5b/12 — Omni + Genie + autopg"
 as_khal_login '
   export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"
   command -v omni   >/dev/null || curl -fsSL https://raw.githubusercontent.com/automagik-dev/omni/main/install.sh   | bash -s -- --server >/dev/null
-  command -v autopg >/dev/null || curl -fsSL https://raw.githubusercontent.com/automagik-dev/autopg/main/install.sh | bash >/dev/null
   command -v genie  >/dev/null || curl -fsSL https://raw.githubusercontent.com/automagik-dev/genie/main/install.sh  | bash >/dev/null
+  command -v autopg >/dev/null || curl -fsSL https://raw.githubusercontent.com/automagik-dev/autopg/main/install.sh | bash >/dev/null
 '
 ok "Omni/Genie/autopg instalados"
 
