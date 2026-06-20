@@ -2,7 +2,7 @@
 
 > Projetinho de estudo: agente conversacional no WhatsApp ("Nova" de uma operadora fictícia chamada Onyx Telecom) construído sobre **Genie** (orquestrador de Claude Code) + **Omni** (bridge Baileys), com painel web em tempo real.
 
-**📱 WhatsApp da Nova:** `+55 34 95328-3194` &nbsp; · &nbsp; **🖥️ Painel:** _TBD (URL pública em breve)_ · senha `onyx-demo`
+**📱 WhatsApp da Nova:** `+55 34 95328-3194` &nbsp; · &nbsp; **🖥️ Painel:** [`https://65-109-8-24.nip.io`](https://65-109-8-24.nip.io) · senha `onyx-demo`
 
 ---
 
