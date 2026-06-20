@@ -278,4 +278,4 @@ sudo -u khal pm2 logs genie-bridge --lines 50
 ## Licença / contato
 
 Repositório: https://github.com/jvpsnegrao/cx-agent  
-Candidato: João Vitor — `joaovitor.sousa@whf.work`
+Candidato: João Vitor — `jvpsousa2@gmail.com`
